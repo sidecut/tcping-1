@@ -205,7 +205,7 @@ Ping statistics %s
 	%d probes sent.
 	%d successful, %d failed.
 Approximate trip times:
-	Minimum = %s, Maximum = %s, Average = %s`
+	Minimum = %s, Maximum = %s, Average = %s\n`
 
 	_, _ = fmt.Fprintf(p.out, tpl, p.url.String(), p.total, p.total-p.failedTotal, p.failedTotal, p.minDuration, p.maxDuration, p.totalDuration/time.Duration(p.total))
 }
