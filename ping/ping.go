@@ -263,6 +263,8 @@ func (p *Pinger) logStats(stats *Stats) {
 
 	timestampFmt := time.Now().Format(time.StampMilli)
 
+	statsDuration := formatDurationMs(stats.Duration)
+	statsDNSDuration := formatDurationMs(stats.DNSDuration)
 	if stats.Error != nil {
 		var colorBefore, colorAfter string
 		if isTerminal(p.out) {
@@ -272,9 +274,9 @@ func (p *Pinger) logStats(stats *Stats) {
 			colorBefore = ""
 			colorAfter = ""
 		}
-		_, _ = fmt.Fprintf(p.out, "%s%s: Ping %s(%s) %s(%s) - time=%s dns=%s%s", colorBefore, timestampFmt, p.url.String(), stats.Address, status, p.formatError(stats.Error), stats.Duration, stats.DNSDuration, colorAfter)
+		_, _ = fmt.Fprintf(p.out, "%s%s: Ping %s(%s) %s(%s) - time=%s dns=%s%s", colorBefore, timestampFmt, p.url.String(), stats.Address, status, p.formatError(stats.Error), statsDuration, statsDNSDuration, colorAfter)
 	} else {
-		_, _ = fmt.Fprintf(p.out, "%s: Ping %s(%s) %s - time=%s dns=%s", timestampFmt, p.url.String(), stats.Address, status, stats.Duration, stats.DNSDuration)
+		_, _ = fmt.Fprintf(p.out, "%s: Ping %s(%s) %s - time=%s dns=%s", timestampFmt, p.url.String(), stats.Address, status, statsDuration, statsDNSDuration)
 	}
 	if len(stats.Meta) > 0 {
 		_, _ = fmt.Fprintf(p.out, " %s", stats.FormatMeta())
@@ -283,6 +285,11 @@ func (p *Pinger) logStats(stats *Stats) {
 	if stats.Extra != nil {
 		_, _ = fmt.Fprintf(p.out, " %s\n", strings.TrimSpace(stats.Extra.String()))
 	}
+}
+
+func formatDurationMs(duration time.Duration) string {
+	ms := float64(duration.Round(time.Microsecond).Microseconds()) / 1000.0
+	return fmt.Sprintf("%.3fms", ms)
 }
 
 func isTerminal(out io.Writer) bool {
