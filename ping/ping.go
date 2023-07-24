@@ -185,14 +185,20 @@ func (p *Pinger) Ping() {
 
 	stop := false
 	p.minDuration = time.Duration(math.MaxInt64)
+	hasDiscardedFirst := false
 	for !stop {
 		select {
 		case <-timer.C:
 			stats := p.ping.Ping(ctx)
-			p.logStats(stats)
-			if p.total++; p.counter > 0 && p.total > p.counter-1 {
-				stop = true
+			if !hasDiscardedFirst {
+				hasDiscardedFirst = true
+			} else {
+				p.logStats(stats)
+				if p.total++; p.counter > 0 && p.total > p.counter-1 {
+					stop = true
+				}
 			}
+			p.printPingResult(p.out, p.url, stats)
 			timer.Reset(interval)
 		case <-p.Done():
 			stop = true
@@ -258,6 +264,9 @@ func (p *Pinger) logStats(stats *Stats) {
 			return
 		}
 	}
+}
+
+func (p *Pinger) printPingResult(out io.Writer, url *url.URL, stats *Stats) {
 	status := "Failed"
 	if stats.Connected {
 		status = "connected"
