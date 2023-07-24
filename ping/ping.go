@@ -210,7 +210,12 @@ Approximate trip times:
 	Minimum = %s, Maximum = %s, Average = %s
 `
 
-	_, _ = fmt.Fprintf(p.out, tpl, p.url.String(), p.total, p.total-p.failedTotal, p.failedTotal, p.minDuration, p.maxDuration, p.totalDuration/time.Duration(p.total))
+	pTotal := time.Duration(p.total)
+	var average time.Duration
+	if pTotal != 0 {
+		average = p.totalDuration / pTotal
+	}
+	_, _ = fmt.Fprintf(p.out, tpl, p.url.String(), p.total, p.total-p.failedTotal, p.failedTotal, p.minDuration, p.maxDuration, average)
 }
 
 func (p *Pinger) formatError(err error) string {
