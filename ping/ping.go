@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/mattn/go-isatty"
+	"github.com/montanaflynn/stats"
 )
 
 var pinger = map[Protocol]Factory{}
@@ -210,6 +211,7 @@ Approximate trip times:
 	Minimum = %s, Maximum = %s, Average = %s
 `
 
+	avg := stats.Mean(p)
 	_, _ = fmt.Fprintf(p.out, tpl, p.url.String(), p.total, p.total-p.failedTotal, p.failedTotal, p.minDuration, p.maxDuration, p.totalDuration/time.Duration(p.total))
 }
 
