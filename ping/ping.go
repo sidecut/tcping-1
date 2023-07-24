@@ -148,11 +148,12 @@ type Pinger struct {
 	interval time.Duration
 	counter  int
 
-	minDuration   time.Duration
-	maxDuration   time.Duration
-	totalDuration time.Duration
-	total         int
-	failedTotal   int
+	hasDiscardedFirst bool
+	minDuration       time.Duration
+	maxDuration       time.Duration
+	totalDuration     time.Duration
+	total             int
+	failedTotal       int
 }
 
 func (p *Pinger) Stop() {
@@ -210,6 +211,10 @@ Approximate trip times:
 	Minimum = %s, Maximum = %s, Average = %s
 `
 
+	if p.hasDiscardedFirst {
+		// Kind of a hack to make sure we don't count the first ping
+		p.total -= 1
+	}
 	pTotal := time.Duration(p.total)
 	var average time.Duration
 	if pTotal != 0 {
@@ -244,19 +249,24 @@ func (p *Pinger) formatError(err error) string {
 }
 
 func (p *Pinger) logStats(stats *Stats) {
-	if stats.Duration < p.minDuration {
-		p.minDuration = stats.Duration
-	}
-	if stats.Duration > p.maxDuration {
-		p.maxDuration = stats.Duration
-	}
-	p.totalDuration += stats.Duration
-	if stats.Error != nil {
-		p.failedTotal++
-		if errors.Is(stats.Error, context.Canceled) {
-			// ignore cancel
-			return
+	if p.hasDiscardedFirst {
+		if stats.Duration < p.minDuration {
+			p.minDuration = stats.Duration
 		}
+		if stats.Duration > p.maxDuration {
+			p.maxDuration = stats.Duration
+		}
+		p.totalDuration += stats.Duration
+		if stats.Error != nil {
+			p.failedTotal++
+			if errors.Is(stats.Error, context.Canceled) {
+				// ignore cancel
+				return
+			}
+		}
+	} else {
+		fmt.Fprintf(p.out, "Note: ignoring the first ping result as it is often inaccurate.\n")
+		p.hasDiscardedFirst = true
 	}
 	status := "Failed"
 	if stats.Connected {
