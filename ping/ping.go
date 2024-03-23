@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"math"
 	"net"
 	"net/url"
 	"os"
@@ -17,6 +16,7 @@ import (
 	"time"
 
 	"github.com/mattn/go-isatty"
+	"gonum.org/v1/gonum/stat"
 )
 
 var pinger = map[Protocol]Factory{}
@@ -145,14 +145,10 @@ type Pinger struct {
 
 	url *url.URL
 
-	interval time.Duration
-	counter  int
-
-	minDuration   time.Duration
-	maxDuration   time.Duration
-	totalDuration time.Duration
-	total         int
-	failedTotal   int
+	interval    time.Duration
+	counter     int
+	durations   []float64
+	failedTotal int
 }
 
 func (p *Pinger) Stop() {
@@ -184,7 +180,6 @@ func (p *Pinger) Ping() {
 	defer timer.Stop()
 
 	stop := false
-	p.minDuration = time.Duration(math.MaxInt64)
 	hasDiscardedFirst := false
 	for !stop {
 		select {
@@ -194,7 +189,7 @@ func (p *Pinger) Ping() {
 				hasDiscardedFirst = true
 			} else {
 				p.logStats(stats)
-				if p.total++; p.counter > 0 && p.total > p.counter-1 {
+				if p.counter > 0 && p.getTotal() > p.counter-1 {
 					stop = true
 				}
 			}
@@ -213,15 +208,28 @@ Ping statistics %s
 	%d probes sent.
 	%d successful, %d failed.
 Approximate trip times:
-	Minimum = %s, Maximum = %s, Average = %s
+	Minimum = %s
+	Maximum = %s
+	Average = %s
+	p50     = %s
+	p95     = %s
+	p99     = %s
 `
 
-	pTotal := time.Duration(p.total)
+	sort.Slice(p.durations, func(i, j int) bool {
+		return p.durations[i] < p.durations[j]
+	})
+
+	pTotal := time.Duration(p.getTotal())
 	var average time.Duration
 	if pTotal != 0 {
-		average = p.totalDuration / pTotal
+		average = p.getAvgDuration()
 	}
-	_, _ = fmt.Fprintf(p.out, tpl, p.url.String(), p.total, p.total-p.failedTotal, p.failedTotal, p.minDuration, p.maxDuration, average)
+	_, _ = fmt.Fprintf(p.out, tpl, p.url.String(), p.getTotal(), p.getSuccessTotal(), p.getFailedTotal(),
+		p.getMinDuration(), p.getMaxDuration(), average,
+		time.Duration(stat.Quantile(0.5, stat.LinInterp, p.durations, nil)),
+		time.Duration(stat.Quantile(0.95, stat.LinInterp, p.durations, nil)),
+		time.Duration(stat.Quantile(0.99, stat.LinInterp, p.durations, nil)))
 }
 
 func (p *Pinger) formatError(err error) string {
@@ -250,13 +258,7 @@ func (p *Pinger) formatError(err error) string {
 }
 
 func (p *Pinger) logStats(stats *Stats) {
-	if stats.Duration < p.minDuration {
-		p.minDuration = stats.Duration
-	}
-	if stats.Duration > p.maxDuration {
-		p.maxDuration = stats.Duration
-	}
-	p.totalDuration += stats.Duration
+	p.durations = append(p.durations, float64(stats.Duration.Nanoseconds()))
 	if stats.Error != nil {
 		p.failedTotal++
 		if errors.Is(stats.Error, context.Canceled) {
@@ -264,6 +266,34 @@ func (p *Pinger) logStats(stats *Stats) {
 			return
 		}
 	}
+}
+
+func (p *Pinger) getTotal() int {
+	return len(p.durations)
+}
+
+func (p *Pinger) getMinDuration() time.Duration {
+	min := stat.Quantile(0, stat.Empirical, p.durations, nil)
+
+	return time.Duration(min)
+}
+
+func (p *Pinger) getMaxDuration() time.Duration {
+	max := stat.Quantile(1, stat.Empirical, p.durations, nil)
+	return time.Duration(max)
+}
+
+func (p *Pinger) getAvgDuration() time.Duration {
+	avg := stat.Mean(p.durations, nil)
+	return time.Duration(avg)
+}
+
+func (p *Pinger) getFailedTotal() int {
+	return p.failedTotal
+}
+
+func (p *Pinger) getSuccessTotal() int {
+	return p.getTotal() - p.getFailedTotal()
 }
 
 func (p *Pinger) printPingResult(stats *Stats) {
