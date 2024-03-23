@@ -327,10 +327,6 @@ func (p *Pinger) getSuccessTotal() int {
 	return p.getTotal() - p.getFailedTotal()
 }
 
-func (p *Pinger) getTotalDuration() time.Duration {
-	return time.Duration(p.getTotal())
-}
-
 func (p *Pinger) printPingResult(stats *Stats) {
 	status := "Failed"
 	if stats.Connected {
