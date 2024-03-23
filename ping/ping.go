@@ -198,7 +198,7 @@ func (p *Pinger) Ping() {
 					stop = true
 				}
 			}
-			p.printPingResult(p.out, p.url, stats)
+			p.printPingResult(stats)
 			timer.Reset(interval)
 		case <-p.Done():
 			stop = true
@@ -266,7 +266,7 @@ func (p *Pinger) logStats(stats *Stats) {
 	}
 }
 
-func (p *Pinger) printPingResult(out io.Writer, url *url.URL, stats *Stats) {
+func (p *Pinger) printPingResult(stats *Stats) {
 	status := "Failed"
 	if stats.Connected {
 		status = "connected"
