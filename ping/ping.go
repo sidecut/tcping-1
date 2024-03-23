@@ -209,11 +209,11 @@ Ping statistics %s
 	%d successful, %d failed.
 Approximate trip times:
 	Minimum = %s
+	Maximum = %s
 	Average = %s
 	p50     = %s
 	p95     = %s
 	p99     = %s
-	Maximum = %s
 `
 
 	sort.Slice(p.durations, func(i, j int) bool {
@@ -226,12 +226,10 @@ Approximate trip times:
 		average = p.getAvgDuration()
 	}
 	_, _ = fmt.Fprintf(p.out, tpl, p.url.String(), p.getTotal(), p.getSuccessTotal(), p.getFailedTotal(),
-		p.getMinDuration(), average,
+		p.getMinDuration(), p.getMaxDuration(), average,
 		time.Duration(stat.Quantile(0.5, stat.Empirical, p.durations, nil)),
 		time.Duration(stat.Quantile(0.95, stat.Empirical, p.durations, nil)),
-		time.Duration(stat.Quantile(0.99, stat.Empirical, p.durations, nil)),
-		p.getMaxDuration(),
-	)
+		time.Duration(stat.Quantile(0.99, stat.Empirical, p.durations, nil)))
 }
 
 func (p *Pinger) formatError(err error) string {
