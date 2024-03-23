@@ -145,15 +145,9 @@ type Pinger struct {
 
 	url *url.URL
 
-	interval time.Duration
-	counter  int
-
-	// minDuration   time.Duration
-	// maxDuration   time.Duration
-	// totalDuration time.Duration
-	// total         int
-	durations []float64
-
+	interval    time.Duration
+	counter     int
+	durations   []float64
 	failedTotal int
 }
 
@@ -186,7 +180,6 @@ func (p *Pinger) Ping() {
 	defer timer.Stop()
 
 	stop := false
-	// p.minDuration = time.Duration(math.MaxInt64)
 	hasDiscardedFirst := false
 	for !stop {
 		select {
@@ -256,13 +249,6 @@ func (p *Pinger) formatError(err error) string {
 }
 
 func (p *Pinger) logStats(stats *Stats) {
-	// if stats.Duration < p.minDuration {
-	// 	p.minDuration = stats.Duration
-	// }
-	// if stats.Duration > p.maxDuration {
-	// 	p.maxDuration = stats.Duration
-	// }
-	// p.totalDuration += stats.Duration
 	p.durations = append(p.durations, float64(stats.Duration.Nanoseconds()))
 	if stats.Error != nil {
 		p.failedTotal++
@@ -278,43 +264,17 @@ func (p *Pinger) getTotal() int {
 }
 
 func (p *Pinger) getMinDuration() time.Duration {
-	// if len(p.durations) == 0 {
-	// 	return 0
-	// }
-	// min := math.MaxFloat64
-	// for _, d := range p.durations {
-	// 	if d < min {
-	// 		min = d
-	// 	}
-	// }
 	min := stat.Quantile(0, stat.Empirical, p.durations, nil)
 
 	return time.Duration(min)
 }
 
 func (p *Pinger) getMaxDuration() time.Duration {
-	// if len(p.durations) == 0 {
-	// 	return 0
-	// }
-	// max := 0.0
-	// for _, d := range p.durations {
-	// 	if d > max {
-	// 		max = d
-	// 	}
-	// }
 	max := stat.Quantile(1, stat.Empirical, p.durations, nil)
 	return time.Duration(max)
 }
 
 func (p *Pinger) getAvgDuration() time.Duration {
-	// if len(p.durations) == 0 {
-	// 	return 0
-	// }
-	// total := 0.0
-	// for _, d := range p.durations {
-	// 	total += d
-	// }
-	// avg := total / float64(len(p.durations))
 	avg := stat.Mean(p.durations, nil)
 	return time.Duration(avg)
 }
