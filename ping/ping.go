@@ -227,9 +227,9 @@ Approximate trip times:
 	}
 	_, _ = fmt.Fprintf(p.out, tpl, p.url.String(), p.getTotal(), p.getSuccessTotal(), p.getFailedTotal(),
 		p.getMinDuration(), p.getMaxDuration(), average,
-		time.Duration(stat.Quantile(0.5, stat.Empirical, p.durations, nil)),
-		time.Duration(stat.Quantile(0.95, stat.Empirical, p.durations, nil)),
-		time.Duration(stat.Quantile(0.99, stat.Empirical, p.durations, nil)))
+		time.Duration(stat.Quantile(0.5, stat.LinInterp, p.durations, nil)),
+		time.Duration(stat.Quantile(0.95, stat.LinInterp, p.durations, nil)),
+		time.Duration(stat.Quantile(0.99, stat.LinInterp, p.durations, nil)))
 }
 
 func (p *Pinger) formatError(err error) string {
