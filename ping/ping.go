@@ -208,8 +208,12 @@ Ping statistics %s
 	%d probes sent.
 	%d successful, %d failed.
 Approximate trip times:
-	Minimum = %s, Maximum = %s, Average = %s
-	p50 = %s, p95 = %s, p99 = %s
+	Minimum = %s
+	Maximum = %s
+	Average = %s
+	p50     = %s
+	p95     = %s
+	p99     = %s
 `
 
 	sort.Slice(p.durations, func(i, j int) bool {
