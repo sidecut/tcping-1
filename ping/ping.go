@@ -17,6 +17,7 @@ import (
 
 	"github.com/mattn/go-isatty"
 	"gonum.org/v1/gonum/stat"
+	"slices"
 )
 
 var pinger = map[Protocol]Factory{}
@@ -216,9 +217,7 @@ Approximate trip times:
 	p99     = %s
 `
 
-	sort.Slice(p.durations, func(i, j int) bool {
-		return p.durations[i] < p.durations[j]
-	})
+	slices.Sort(p.durations)
 
 	pTotal := time.Duration(p.getTotal())
 	var average time.Duration
